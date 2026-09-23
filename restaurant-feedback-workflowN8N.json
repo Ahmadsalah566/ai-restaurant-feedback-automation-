@@ -1,0 +1,349 @@
+{
+  "name": "My workflow 8",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "n8nUserAuth",
+        "requireExecuteAccess": true,
+        "formTitle": "Restaurant Feedback",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Customer Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Rating",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "1"
+                  },
+                  {
+                    "option": "2"
+                  },
+                  {
+                    "option": "3"
+                  },
+                  {
+                    "option": "4"
+                  },
+                  {
+                    "option": "5"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Feedback"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "5fb29aff-4870-483f-ad37-024fd951a4d6",
+      "name": "On form submission",
+      "webhookId": "f7889a84-7372-41a0-8b69-d16f86b1cb0e"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const json = item.json;\n  const rating = Number(json.Rating);\n  const feedback = json.Feedback || '';\n\n  // التحقق من صحة التقييم (1-5)\n  const isValidRating = rating >= 1 && rating <= 5;\n\n  // حساب عدد الكلمات\n  const wordCount = feedback.trim() ? feedback.trim().split(/\\s+/).length : 0;\n\n  // حساب عدد الحروف (شاملاً المسافات)\n  const charCount = feedback.length;\n\n  // لحساب عدد الحروف (بدون مسافات)، يمكنك استخدام:\n  // const charCountNoSpaces = feedback.replace(/\\s+/g, '').length;\n\n  return {\n    json: {\n      ...json,\n      ratingValid: isValidRating,\n      wordCount: wordCount,\n      charCount: charCount\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "4c1b5ec5-f126-47db-81e0-23354d3e0cb3",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following restaurant feedback:\nCustomer Name: {{ $json[\"Customer Name\"] }}\nEmail: {{ $json.Email }}\nRating: {{ $json.Rating }}\nFeedback: {{ $json.Feedback }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert AI assistant that analyzes restaurant customer feedback. Your task is to analyze the user input and extract the sentiment, main category, priority level, score (0-100), key issues, and a recommended action to address the feedback."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        208,
+        0
+      ],
+      "id": "30be64f4-11e9-44fc-92d0-eb852db058da",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        176
+      ],
+      "id": "aa27a937-37d7-4b02-b43c-8070b9d885a0",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"Sentiment\": { \"type\": \"string\" },\n    \"Category\": { \"type\": \"string\" },\n    \"Priority\": { \"type\": \"string\" },\n    \"Score\": { \"type\": \"number\" },\n    \"Issues\": { \"type\": \"string\" },\n    \"Recommended Action\": { \"type\": \"string\" }\n  },\n  \"required\": [\"Sentiment\", \"Category\", \"Priority\", \"Score\", \"Issues\", \"Recommended Action\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        176
+      ],
+      "id": "c73442d6-18f5-4141-b898-24462f331bd7",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1CcIbDsfNltT02R7IRFlpa27BKCRAp4VLY3bRXqX_ZQ0",
+          "mode": "list",
+          "cachedResultName": "n8n agent",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CcIbDsfNltT02R7IRFlpa27BKCRAp4VLY3bRXqX_ZQ0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 226448002,
+          "mode": "list",
+          "cachedResultName": "analysis_FBK",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CcIbDsfNltT02R7IRFlpa27BKCRAp4VLY3bRXqX_ZQ0/edit#gid=226448002"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Customer Name": "={{ $('Code in JavaScript').item.json['Customer Name'] }}",
+            "Email": "={{ $('Code in JavaScript').item.json.Email }}",
+            "Feedback": "={{ $('Code in JavaScript').item.json.Feedback }}",
+            "Rating": "={{ $('Code in JavaScript').item.json.Rating }}",
+            "Sentiment": "={{ $json.output.Sentiment }}",
+            "Priority": "={{ $json.output.Priority }}",
+            "Category": "={{ $json.output.Category }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rating",
+              "displayName": "Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Feedback",
+              "displayName": "Feedback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sentiment",
+              "displayName": "Sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        576,
+        0
+      ],
+      "id": "79175ddc-8bfc-4378-8e27-70cd6849778c",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Twvhm9QwCh9UUmqj",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "Thank You for Your Feedback 😊",
+        "message": "=<div style=\"font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;\">\n  <div style=\"background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-top: 6px solid #e63946;\">\n    \n    <!-- Header & Logo Section -->\n    <div style=\"text-align: center; padding: 30px 20px 20px; background-color: #ffffff;\">\n      <img src=\"https://cdn-icons-png.flaticon.com/512/3170/3170733.png\" alt=\"Restaurant Logo\" style=\"max-width: 90px; height: auto; margin-bottom: 10px;\">\n      <h2 style=\"color: #1d3557; margin: 10px 0 0; font-size: 24px; font-weight: 700;\">Thank You for Your Feedback!</h2>\n      <p style=\"color: #e63946; font-size: 14px; font-weight: 600; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px;\">Restaurant Management Team</p>\n    </div>\n\n    <!-- Message Body -->\n    <div style=\"padding: 0 30px 30px; color: #4a5568; line-height: 1.7; font-size: 15px; text-align: left; direction: ltr;\">\n      <p style=\"font-size: 16px; color: #2d3748;\">Dear <strong style=\"color: #1d3557;\">{{ $json[\"Customer Name\"] }}</strong>,</p>\n      \n      <p>Thank you so much for taking the time to share your feedback and experience with us.</p>\n      \n      <!-- Highlight Box -->\n      <div style=\"background-color: #f8f9fa; border-left: 4px solid #e63946; padding: 15px 20px; border-radius: 4px; margin: 20px 0;\">\n        <p style=\"margin: 0; font-style: italic; color: #495057;\">\n          \"Your insights are essential in helping us improve our service and deliver the best dining experience possible.\"\n        </p>\n      </div>\n\n      <p>Our team reviews every piece of feedback carefully, and we look forward to welcoming you back again soon!</p>\n    </div>\n\n    <!-- Footer -->\n    <div style=\"background-color: #1d3557; text-align: center; padding: 20px; color: #ffffff; font-size: 13px;\">\n      <p style=\"margin: 0 0 5px; color: #ffffff; font-weight: 600;\">Customer Support Team</p>\n      <p style=\"margin: 0; opacity: 0.8;\">This is an automated response to confirm receipt of your feedback.</p>\n    </div>\n\n  </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "eb602a3a-0b0f-4bd3-969a-36eb568874ee",
+      "name": "Send a message",
+      "webhookId": "ec08f0e3-a583-40af-bf37-1ba3c1f79d46",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lfQM4Lg8ncIeuNP3",
+          "name": "Gmail account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "aacf64f5-892d-4ae0-8b82-e2197a40916b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5fd212815387372bf5dacf321edbc3e5fe9cac46899345aa08a57e4bde974dcd"
+  },
+  "nodeGroups": [],
+  "id": "7STd5FQfAfQ939nb",
+  "tags": []
+}
